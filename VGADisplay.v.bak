@@ -1,0 +1,59 @@
+module VGADisplay (
+  input wire clk,
+  input wire rst,
+  input wire [3:0] red,
+  input wire [3:0] green,
+  input wire [3:0] blue,
+  input wire hsync,
+  input wire vsync
+);
+
+  // VGA parameters
+  parameter H_DISPLAY = 640;
+  parameter V_DISPLAY = 480;
+
+  // Internal counters
+  reg [10:0] h_disp_count;
+  reg [10:0] v_disp_count;
+
+  // VGA output
+  reg h_blank, v_blank;
+
+  // VGA display logic
+  always @(posedge clk or posedge rst) begin
+    if (rst) begin
+      h_disp_count <= 0;
+      v_disp_count <= 0;
+      h_blank <= 1;
+      v_blank <= 1;
+    end else begin
+      // Horizontal counter
+      if (hsync) begin
+        h_disp_count <= 0;
+        h_blank <= 1;
+      end else if (h_disp_count < H_DISPLAY - 1) begin
+        h_disp_count <= h_disp_count + 1;
+        h_blank <= 0;
+      end else begin
+        h_disp_count <= 0;
+        h_blank <= 1;
+      end
+
+      // Vertical counter
+      if (vsync) begin
+        v_disp_count <= 0;
+        v_blank <= 1;
+      end else if (v_disp_count < V_DISPLAY - 1) begin
+        v_disp_count <= v_disp_count + 1;
+        v_blank <= 0;
+      end else begin
+        v_disp_count <= 0;
+        v_blank <= 1;
+      end
+    end
+  end
+
+  // VGA color output logic
+  assign {red, green, blue} = (h_blank | v_blank) ? 4'b0000 : {red, green, blue};
+
+endmodule

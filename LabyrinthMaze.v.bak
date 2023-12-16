@@ -1,0 +1,98 @@
+module LabyrinthMaze (
+  input wire clk,
+  input wire rst,
+  output wire [7:0] maze_output
+);
+
+  // Define maze dimensions
+  parameter WIDTH = 16;
+  parameter HEIGHT = 16;
+
+  // Define maze elements
+  parameter EMPTY = 8'b00000000;
+  parameter WALL = 8'b11111111;
+  parameter START = 8'b00000001;
+  parameter EXIT = 8'b00000010;
+
+  // Define 2D array for the maze
+  reg [7:0] maze [0:WIDTH-1][0:HEIGHT-1];
+
+  // Define starting position
+  reg [3:0] start_x = 0;
+  reg [3:0] start_y = 0;
+
+  // Define exit position
+  reg [3:0] exit_x = WIDTH - 1;
+  reg [3:0] exit_y = HEIGHT - 1;
+
+  // Initialize maze
+  initial begin
+    // Set all cells to WALL
+    for (int i = 0; i < WIDTH; i = i + 1) begin
+      for (int j = 0; j < HEIGHT; j = j + 1) begin
+        maze[i][j] = WALL;
+      end
+    end
+
+    // Initialize starting point
+    maze[start_x][start_y] = START;
+
+    // Initialize exit point
+    maze[exit_x][exit_y] = EXIT;
+
+    // Start Recursive Backtracking algorithm
+    recursiveBacktrack(start_x, start_y);
+  end
+
+  // Output current maze state
+  always @(posedge clk or posedge rst) begin
+    if (rst) begin
+      maze_output <= 8'b0;
+    end else begin
+      maze_output <= maze[start_x][start_y];
+    end
+  end
+
+  // Recursive Backtracking algorithm
+  function void recursiveBacktrack(int x, int y);
+    // Mark the current cell as visited
+    maze[x][y] = EMPTY;
+
+    // Define the possible directions (up, down, left, right)
+    int directions [0:3] = {0, 1, 2, 3};
+
+    // Shuffle the directions array
+    shuffleDirections(directions);
+
+    // Loop through the directions
+    for (int i = 0; i < 4; i = i + 1) begin
+      // Calculate the new coordinates based on the chosen direction
+      int new_x = x + (directions[i] == 0 ? 2 : (directions[i] == 1 ? -2 : 0));
+      int new_y = y + (directions[i] == 2 ? 2 : (directions[i] == 3 ? -2 : 0));
+
+      // Check if the new coordinates are within bounds and if the cell is unvisited
+      if (new_x >= 0 && new_x < WIDTH && new_y >= 0 && new_y < HEIGHT && maze[new_x][new_y] == WALL) begin
+        // Carve a passage between the current cell and the new cell
+        maze[(x + new_x) / 2][(y + new_y) / 2] = EMPTY;
+        
+        // Recursively call the function for the new cell
+        recursiveBacktrack(new_x, new_y);
+      end
+    end
+  endfunction
+
+  // Function to shuffle the directions array (Fisher-Yates shuffle)
+  function void shuffleDirections(int directions[0:3]);
+    int temp;
+    int random_index;
+
+    // Perform Fisher-Yates shuffle
+    for (int i = 3; i >= 0; i = i - 1) begin
+      random_index = $random % (i + 1);
+      temp = directions[i];
+      directions[i] = directions[random_index];
+      directions[random_index] = temp;
+    end
+  endfunction
+
+endmodule
